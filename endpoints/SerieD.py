@@ -1,0 +1,119 @@
+from flask import Blueprint, jsonify, request, abort
+from conectar.funcaoConectar import conectar
+
+SerieD_bp = Blueprint("SerieD", __name__, url_prefix="/SerieD")
+
+ #ROTAS PARA A TABELA CADASTRO USUÁRIO 
+##ROTA GET
+##############################################
+@SerieD_bp.route("/", methods=["GET"])
+def listar_Cadastros():
+    conn = conectar()
+    #conn.execute("PRAGMA foreign_keys = ON") #ativa as chaves estrangeiras das tabelas (pois, não é ativado por padrão)
+    cursor = conn.cursor()
+    cursor.execute("SELECT idSerieD, NomeClube, PontosClube, JogosClube,Saldosgols,VitoriasClube,DerrotasClube,empateClube,PosicaoClube FROM SerieD")
+    dados = [
+        {"idSerieD": row[0], "NomeClube": row[1], "PontosClube": row[2], "JogosClube": row[3], "Saldosgols": row[4], "VitoriasClube": row[5], "DerrotasClube": row[6], "EmpateClube": row[7], "PosicaoClube": row[8]}
+        for row in cursor.fetchall()
+    ]
+    conn.close()
+    return jsonify(dados)
+
+##ROTA INSERT
+#############################################
+
+from flask import request, jsonify, abort
+@SerieD_bp.route("/", methods=["POST"])
+def criar_SerieD():
+    dados = request.get_json(silent=True)
+    if not dados:
+        abort(400, description="JSON inválido ou ausente")
+
+    # Validação de campos obrigatórios
+    campos_obrigatorios = {"NomeClube", "PontosClube","JogosClube","SaldosGols","VitoriasClube","DerrotasClube","EmpateClube","PosicaoClube"}
+    if not campos_obrigatorios.issubset(dados.keys()):
+        abort(400, description=f"Campos obrigatórios: {', '.join(campos_obrigatorios)}")
+
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO SerieD (NomeClube, PontosClube,JogosClube,SaldosGols,VitoriasClube,DerrotasClube,EmpateClube,PosicaoClube)"
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (dados["NomeClube"], dados["PontosClube"], dados["JogosClube"],dados["SaldosGols"],dados["VitoriasClube"],dados["DerrotasClube"],dados["EmpateClube"],dados["PosicaoClube"])
+    )
+    conn.commit()
+    novo_id = cursor.lastrowid
+    conn.close()
+
+    # 201 Created + Location do recurso recém‑criado
+    resposta = jsonify({"idSerieD": novo_id, **dados})
+    resposta.status_code = 201
+    resposta.headers["Location"] = f"/SerieD/{novo_id}"
+    return resposta
+
+##ROTA UPDATE
+#############################################
+@SerieD_bp.route("/<int:idSerieD>", methods=["PUT", "PATCH"])
+def atualizar_SerieD(idSerieD):
+    dados = request.get_json(silent=True)
+    if not dados:
+        abort(400, description="JSON inválido ou ausente")
+
+    # Para PUT, garanta que todos os campos estejam presentes
+    if request.method == "PUT":
+        campos_esperados = {"NomeClube", "PontosClube","JogosClube","SaldosGols","VitoriasClube","DerrotasClube","EmpateClube","PosicaoClube"}
+        if not campos_esperados.issubset(dados.keys()):
+            abort(400, description=f"PUT requer todos os campos: {', '.join(campos_esperados)}")
+
+    # Monta dinamicamente o SQL somente com os campos enviados
+    campos_validos = {"NomeClube", "PontosClube","JogosClube","SaldosGols","VitoriasClube","DerrotasClube","EmpateClube","PosicaoClube"}
+    set_clauses = []
+    valores = []
+    for campo in campos_validos & dados.keys():
+        set_clauses.append(f"{campo} = ?")
+        valores.append(dados[campo])
+
+    if not set_clauses:
+        abort(400, description="Nenhum campo válido para atualizar")
+
+    valores.append(idSerieD)  # último parâmetro é o WHERE
+
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute(
+        f"UPDATE SerieD SET {', '.join(set_clauses)} WHERE idSerieD = ?",
+        tuple(valores)
+    )
+    conn.commit()
+
+    if cursor.rowcount == 0:
+        conn.close()
+        abort(404, description="Usuário não encontrado")
+
+    conn.close()
+    # 204 = No Content, mas você pode devolver 200 com o JSON atualizado se preferir
+    return ("", 204)
+
+
+##ROTA DELETE
+#############################################
+from flask import jsonify, abort
+
+@SerieD_bp.route("/<int:idSerieD>", methods=["DELETE"])
+def deletar_SerieD(idSerieD):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    # tenta apagar o registro informado
+    cursor.execute("DELETE FROM SerieD WHERE idSerieD = ?", (idSerieD,))
+    conn.commit()
+
+    # cursor.rowcount informa quantas linhas foram afetadas
+    if cursor.rowcount == 0:
+        conn.close()
+        # nenhum registro com esse ID → devolve 404
+        abort(404, description="Usuário não encontrado")
+
+    conn.close()
+    # 204 = No Content (padrão para deleções bem‑sucedidas)
+    return ("", 204)
