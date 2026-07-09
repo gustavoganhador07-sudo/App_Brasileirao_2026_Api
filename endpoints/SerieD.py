@@ -11,9 +11,9 @@ def listar_Cadastros():
     conn = conectar()
     #conn.execute("PRAGMA foreign_keys = ON") #ativa as chaves estrangeiras das tabelas (pois, não é ativado por padrão)
     cursor = conn.cursor()
-    cursor.execute("SELECT idSerieD, NomeClube, PontosClube, JogosClube,Saldosgols,VitoriasClube,DerrotasClube,empateClube,PosicaoClube FROM SerieD")
+    cursor.execute("SELECT idSerieD, NomeClube, PontosClube, JogosClube,SaldosGols,VitoriasClube,EmpateClube,DerrotasClube,PosicaoClube FROM SerieD")
     dados = [
-        {"idSerieD": row[0], "NomeClube": row[1], "PontosClube": row[2], "JogosClube": row[3], "Saldosgols": row[4], "VitoriasClube": row[5], "DerrotasClube": row[6], "EmpateClube": row[7], "PosicaoClube": row[8]}
+        {"idSerieD": row[0], "NomeClube": row[1], "PontosClube": row[2], "JogosClube": row[3], "SaldosGols": row[4], "VitoriasClube": row[5],"EmpateClube": row[7], "DerrotasClube": row[6],  "PosicaoClube": row[8]}
         for row in cursor.fetchall()
     ]
     conn.close()
@@ -30,16 +30,16 @@ def criar_SerieD():
         abort(400, description="JSON inválido ou ausente")
 
     # Validação de campos obrigatórios
-    campos_obrigatorios = {"NomeClube", "PontosClube","JogosClube","SaldosGols","VitoriasClube","DerrotasClube","EmpateClube","PosicaoClube"}
+    campos_obrigatorios = {"NomeClube", "PontosClube","JogosClube","SaldosGols","VitoriasClube","EmpateClube","DerrotasClube","PosicaoClube"}
     if not campos_obrigatorios.issubset(dados.keys()):
         abort(400, description=f"Campos obrigatórios: {', '.join(campos_obrigatorios)}")
 
     conn = conectar()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO SerieD (NomeClube, PontosClube,JogosClube,SaldosGols,VitoriasClube,DerrotasClube,EmpateClube,PosicaoClube)"
+        "INSERT INTO SerieD (NomeClube, PontosClube,JogosClube,SaldosGols,VitoriasClube,EmpateClube,DerrotasClube,PosicaoClube)"
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (dados["NomeClube"], dados["PontosClube"], dados["JogosClube"],dados["SaldosGols"],dados["VitoriasClube"],dados["DerrotasClube"],dados["EmpateClube"],dados["PosicaoClube"])
+        (dados["NomeClube"], dados["PontosClube"], dados["JogosClube"],dados["SaldosGols"],dados["VitoriasClube"],dados["EmpateClube"],dados["DerrotasClube"],dados["PosicaoClube"])
     )
     conn.commit()
     novo_id = cursor.lastrowid
@@ -61,12 +61,12 @@ def atualizar_SerieD(idSerieD):
 
     # Para PUT, garanta que todos os campos estejam presentes
     if request.method == "PUT":
-        campos_esperados = {"NomeClube", "PontosClube","JogosClube","SaldosGols","VitoriasClube","DerrotasClube","EmpateClube","PosicaoClube"}
+        campos_esperados = {"NomeClube", "PontosClube","JogosClube","SaldosGols","VitoriasClube","EmpateClube","DerrotasClube","PosicaoClube"}
         if not campos_esperados.issubset(dados.keys()):
             abort(400, description=f"PUT requer todos os campos: {', '.join(campos_esperados)}")
 
     # Monta dinamicamente o SQL somente com os campos enviados
-    campos_validos = {"NomeClube", "PontosClube","JogosClube","SaldosGols","VitoriasClube","DerrotasClube","EmpateClube","PosicaoClube"}
+    campos_validos = {"NomeClube", "PontosClube","JogosClube","SaldosGols","VitoriasClube","EmpateClube","DerrotasClube","PosicaoClube"}
     set_clauses = []
     valores = []
     for campo in campos_validos & dados.keys():
