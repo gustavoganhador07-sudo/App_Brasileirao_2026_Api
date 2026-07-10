@@ -53,7 +53,7 @@ def criar_SerieA():
 
 ##ROTA UPDATE
 #############################################
-@SerieA_bp.route("//<int:idSerieA>", methods=["PUT", "PATCH"])
+@SerieA_bp.route("/<int:idSerieA>", methods=["PUT", "PATCH"])
 def atualizar_SerieA(idSerieA):
     dados = request.get_json(silent=True)
     if not dados:
@@ -61,12 +61,12 @@ def atualizar_SerieA(idSerieA):
 
     # Para PUT, garanta que todos os campos estejam presentes
     if request.method == "PUT":
-        campos_esperados = {"NomeClube", "PontosClube", "JogosClube","SaldosGols","VitoriasClube","EmpateClube","DerrotasClube","PosicaoClube,"}
+        campos_esperados = {"NomeClube", "PontosClube", "JogosClube","SaldosGols","VitoriasClube","EmpateClube","DerrotasClube","PosicaoClube"}
         if not campos_esperados.issubset(dados.keys()):
             abort(400, description=f"PUT requer todos os campos: {', '.join(campos_esperados)}")
 
     # Monta dinamicamente o SQL somente com os campos enviados
-    campos_validos = {"NomeClube", "PontosClube","JogosClube,SaldosGols","VitoriasClube","EmpateClube","DerrotasClube","PosicaoClube,"}
+    campos_validos = {"NomeClube", "PontosClube","JogosClube","SaldosGols","VitoriasClube","EmpateClube","DerrotasClube","PosicaoClube"}
     set_clauses = []
     valores = []
     for campo in campos_validos & dados.keys():
